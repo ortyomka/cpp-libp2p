@@ -493,17 +493,17 @@ namespace libp2p::protocol::kademlia {
       msg.closer_peers.reset();
     }
 
-    auto cid_res = ContentId::fromWire(msg.key);
-    if (not cid_res) {
+    auto pid_res = PeerId::fromBytes(msg.key);
+    if (not pid_res) {
       log_.warn("FindNode failed: invalid key in message");
       return;
     }
-    auto &cid = cid_res.value();
+    auto &pid = pid_res.value();
 
-    log_.debug("MSG: FindNode ({})", multi::detail::encodeBase58(cid.data));
+    log_.debug("MSG: FindNode ({})", pid.toBase58());
 
     auto ids = peer_routing_table_->getNearestPeers(
-        NodeId(cid), config_.closerPeerCount * 2);
+        NodeId(pid), config_.closerPeerCount * 2);
 
     std::vector<Message::Peer> peers;
     peers.reserve(config_.closerPeerCount);
