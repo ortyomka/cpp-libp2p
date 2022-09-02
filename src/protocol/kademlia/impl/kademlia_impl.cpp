@@ -339,6 +339,7 @@ namespace libp2p::protocol::kademlia {
 
     if (auto providers = content_routing_table_->getProvidersFor(msg.key);
         not providers.empty()) {
+      log_.debug("MSG: GetValue ({}) providers (max: {})", multi::detail::encodeBase58(msg.key), config_.closerPeerCount);
       std::vector<Message::Peer> peers;
       peers.reserve(config_.closerPeerCount);
 
@@ -354,22 +355,28 @@ namespace libp2p::protocol::kademlia {
         }
       }
 
+      log_.debug("MSG: GetValue ({}) providers (max: {}, actual: {})", multi::detail::encodeBase58(msg.key), config_.closerPeerCount, peers.size());
       msg.provider_peers = std::move(peers);
     }
 
     auto res = storage_->getValue(msg.key);
     if (res) {
+      log_.debug("MSG: GetValue ({}) found value", multi::detail::encodeBase58(msg.key));
       auto &[value, expire] = res.value();
       msg.record = Message::Record{std::move(msg.key), std::move(value),
                                    std::to_string(expire.count())};
+    } else {
+      log_.debug("MSG: GetValue ({}) not found value: {}", multi::detail::encodeBase58(msg.key), res.error().message());
     }
 
     auto buffer = std::make_shared<std::vector<uint8_t>>();
     if (not msg.serialize(*buffer)) {
+      log_.debug("MSG: GetValue ({}) not serialized", multi::detail::encodeBase58(msg.key));
       session->close(Error::MESSAGE_SERIALIZE_ERROR);
       BOOST_UNREACHABLE_RETURN();
     }
 
+    log_.debug("MSG: GetValue ({}) send", multi::detail::encodeBase58(msg.key));
     session->write(buffer, {});
   }
 
